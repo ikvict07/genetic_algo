@@ -1,7 +1,5 @@
-from numpy.ma.core import multiply
-
-from B1.game import game
-from B1.virtual_machine import run_virtual_machine, StepType
+from B1.old_v.game import game
+from B1.old_v.virtual_machine import run_virtual_machine, StepType
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 

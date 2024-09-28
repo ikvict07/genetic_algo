@@ -1,9 +1,9 @@
 import random
 
-from B1.evo_algo import Person
-from B1.evo_algo import generate_population
-from B1.field import generate_field, add_treasures
-from B1.virtual_machine import run_virtual_machine, StepType, Pair, Instruction, Register
+from B1.old_v.evo_algo import Person
+from B1.old_v.evo_algo import generate_population
+from B1.old_v.field import generate_field, add_treasures
+from B1.old_v.virtual_machine import run_virtual_machine, StepType, Pair, Instruction, Register
 
 
 def get_new_population(person_to_fitness: list[tuple[Person, tuple[int, int]]], mutation_rate: int, best_count: int) -> list[

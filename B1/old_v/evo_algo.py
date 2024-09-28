@@ -1,5 +1,5 @@
 import random
-from B1.virtual_machine import Instruction, Register, Pair
+from B1.old_v.virtual_machine import Instruction, Register, Pair
 
 
 class Person:
