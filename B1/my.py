@@ -4,15 +4,16 @@ from matplotlib import patches, pyplot as plt
 
 
 POPULATION_SIZE = 1000
-GENERATIONS = 1000
+GENERATIONS = 5000
 CHROMOSOME_SIZE = 64
 ELITE = POPULATION_SIZE // 100 * 15
+RANDOM_TO_LEAVE = POPULATION_SIZE // 100 * 1
 MUTATION_RATE = 0.10
-
+WANTED_RESULT = 45
 
 def animate_solution(directions: list):
     n, m = 7, 7
-    treasures = [(1, 4), (2, 2), (4, 1), (5, 4), (3, 6)]  # Adjusted coordinates
+    treasures = [(1, 4), (2, 2), (4, 1), (5, 4), (3, 6)]
     person_pos = [0, 0]
 
     fig, ax = plt.subplots()
@@ -213,7 +214,7 @@ class Game:
             directions = list(virtual_machine.run_virtual_machine(person))
             for direction in directions:
                 if collected == len(field.treasures):
-                    if steps > field.size * field.size:
+                    if steps > WANTED_RESULT:
                         break
                     print("All treasures collected")
                     print(f"Person: {person}")
@@ -244,13 +245,15 @@ class Game:
                 best_steps = steps
                 best_collected = collected
 
-        assert steps == len(directions)
         return best_person, (best_collected, best_steps)
 
 def generate_new_population(person_to_fitness: dict) -> Population:
     sorted_persons = sorted(person_to_fitness.items(), key=lambda item: item[1], reverse=True)
     elite = [person for person, _ in sorted_persons[:ELITE]]
     new_population = elite.copy()
+    random_persons = random.sample(sorted_persons, RANDOM_TO_LEAVE)
+    for person, _ in random_persons:
+        new_population.append(person)
     while len(new_population) < POPULATION_SIZE:
         first = select_person(sorted_persons)
         second = select_person(sorted_persons)
@@ -301,7 +304,7 @@ def calculate_fitness(collected: int, steps: int, field_size: int) -> float:
     if collected == field_size:
         fitness += 1000.0
 
-    if steps > field_size * field_size:
+    if steps > WANTED_RESULT:
         fitness /= 2
 
     return max(fitness, 0.0)
