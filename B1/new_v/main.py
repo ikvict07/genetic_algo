@@ -1,15 +1,29 @@
 import random
-
+import numpy as np
 from matplotlib import patches, pyplot as plt
 
-
-POPULATION_SIZE = 1000
+POPULATION_SIZE = 500
 GENERATIONS = 5000
 CHROMOSOME_SIZE = 64
 ELITE = POPULATION_SIZE // 100 * 15
-RANDOM_TO_LEAVE = POPULATION_SIZE // 100 * 1
-MUTATION_RATE = 0.10
-WANTED_RESULT = 45
+RANDOM_TO_LEAVE = POPULATION_SIZE // 100 * 5
+MUTATION_RATE = 0.05
+WANTED_RESULT = 40
+
+best_fitnesses = []
+final_best_fitnesses = []
+
+
+def plot_best_fitnesses(best_fitnesses):
+    plt.figure(figsize=(10, 5))
+    plt.plot(best_fitnesses, label='Best Fitness')
+    plt.xlabel('Generation')
+    plt.ylabel('Fitness')
+    plt.title('Best Fitness Over Generations')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
 
 def animate_solution(directions: list):
     n, m = 7, 7
@@ -50,16 +64,29 @@ def animate_solution(directions: list):
 
     plt.show()
 
-def main():
-    game = Game()
 
+def main():
+    global best_fitnesses
+    game = Game()
+    # for _ in range(5):
+    #     try:
+    #         game.play_game(generate_population(POPULATION_SIZE))
+    #     except ValueError:
+    #         for i, v in enumerate(best_fitnesses):
+    #             if (i < len(final_best_fitnesses)):
+    #                 final_best_fitnesses[i] = ((final_best_fitnesses[i] + v) / 2)
+    #             else:
+    #                 final_best_fitnesses.append(v)
+    #         best_fitnesses = []
+    # plot_best_fitnesses(final_best_fitnesses)
+    ### This part is used to generate graph of mean best fitnesses over 5 runs
     try:
         game.play_game(generate_population(POPULATION_SIZE))
     except ValueError:
         game_result = game.game_result
         directions = game_result.directions
         animate_solution(directions)
-
+        plot_best_fitnesses(best_fitnesses)
 
 
 class Gene:
@@ -67,6 +94,7 @@ class Gene:
         self.gene = gene
         self.operation_type = OperationType.of(gene[0:2])
         self.address = Address(gene[2:8])
+
 
 class OperationType:
     INC = "00"
@@ -87,6 +115,7 @@ class OperationType:
         else:
             raise ValueError("Invalid operation type")
 
+
 class Address:
     def __init__(self, address: str):
         self.address = address
@@ -94,17 +123,21 @@ class Address:
     def get_int(self) -> int:
         return int(self.address, 2)
 
+
 class Chromosome:
     def __init__(self, genes: list):
         self.genes = genes
+
 
 class Person:
     def __init__(self, chromosome: Chromosome):
         self.chromosome = chromosome
 
+
 class Population:
     def __init__(self, persons: list):
         self.persons = persons
+
 
 class Direction:
     UP = "LEFT"
@@ -125,21 +158,27 @@ class Direction:
         else:
             raise ValueError("Invalid direction")
 
+
 def generate_all_possible_combinations() -> list:
     return [format(i, '08b') for i in range(256)]
+
 
 def generate_population(size: int) -> Population:
     persons = [generate_person() for _ in range(size)]
     return Population(persons)
 
+
+combinations = generate_all_possible_combinations()
+
+
 def generate_person() -> Person:
-    combinations = generate_all_possible_combinations()
     genes = [Gene(random.choice(combinations)) for _ in range(CHROMOSOME_SIZE)]
     return Person(Chromosome(genes))
 
+
 class VirtualMachine:
     def run_virtual_machine(self, person: Person):
-        memory = [""] * 64
+        memory = np.empty(64, dtype='U8')
         self.fill_memory(memory, person)
         pointer = 0
         steps = 0
@@ -173,12 +212,13 @@ class VirtualMachine:
                 yield Direction.of(memory[address][6:8])
                 pointer += 1
 
-    def fill_memory(self, memory: list, person: Person):
+    def fill_memory(self, memory: np.ndarray, person: Person):
         genes = person.chromosome.genes
         for i, gene in enumerate(genes):
             operation_type = gene.operation_type
             address = gene.address
             memory[i] = operation_type + address.address
+
 
 class GameResult:
     def __init__(self, person: Person, steps: int, treasures: int, directions: list):
@@ -186,6 +226,7 @@ class GameResult:
         self.steps = steps
         self.treasures = treasures
         self.directions = directions
+
 
 class Game:
     def __init__(self):
@@ -201,6 +242,16 @@ class Game:
             best_person = pair[0]
             print(f"Best person found steps {pair[1][1]} treasures: {pair[1][0]}: {best_person}")
             population = generate_new_population(person_to_fitness)
+        wnat_to_continue = input("No solution found, do you want to continue? (y/n)")
+        if wnat_to_continue.lower() == 'n':
+            raise ValueError("User stopped the game")
+        else:
+            for i in range(GENERATIONS, GENERATIONS * 2):
+                print(f"Generation: {i}")
+                pair = self.run_generation(population, virtual_machine, person_to_fitness)
+                best_person = pair[0]
+                print(f"Best person found steps {pair[1][1]} treasures: {pair[1][0]}: {best_person}")
+                population = generate_new_population(person_to_fitness)
         return self.run_generation(population, virtual_machine, person_to_fitness)[0]
 
     def run_generation(self, population: Population, virtual_machine: VirtualMachine, person_to_fitness: dict):
@@ -244,8 +295,9 @@ class Game:
                 best_person = person
                 best_steps = steps
                 best_collected = collected
-
+        best_fitnesses.append(best_fitness)
         return best_person, (best_collected, best_steps)
+
 
 def generate_new_population(person_to_fitness: dict) -> Population:
     sorted_persons = sorted(person_to_fitness.items(), key=lambda item: item[1], reverse=True)
@@ -255,12 +307,13 @@ def generate_new_population(person_to_fitness: dict) -> Population:
     for person, _ in random_persons:
         new_population.append(person)
     while len(new_population) < POPULATION_SIZE:
-        first = select_person(sorted_persons)
-        second = select_person(sorted_persons)
+        first = roulette_wheel_selection(sorted_persons)
+        second = roulette_wheel_selection(sorted_persons)
         child = crossover(first, second)
         child = mutate(child)
         new_population.append(child)
     return Population(new_population)
+
 
 def mutate(person: Person) -> Person:
     genes = person.chromosome.genes.copy()
@@ -269,9 +322,11 @@ def mutate(person: Person) -> Person:
             genes[i] = generate_random_gene()
     return Person(Chromosome(genes))
 
+
 def generate_random_gene() -> Gene:
     combinations = generate_all_possible_combinations()
     return Gene(random.choice(combinations))
+
 
 def crossover(first: Person, second: Person) -> Person:
     first_genes = first.chromosome.genes
@@ -280,34 +335,51 @@ def crossover(first: Person, second: Person) -> Person:
     new_genes = [first_genes[i] if i < crossover_point else second_genes[i] for i in range(CHROMOSOME_SIZE)]
     return Person(Chromosome(new_genes))
 
+
+def roulette_wheel_selection(sorted_persons: list) -> Person:
+    total_fitness = sum(fitness for _, fitness in sorted_persons)
+    selection_probs = [fitness / total_fitness for _, fitness in sorted_persons]
+
+    cumulative_probs = np.cumsum(selection_probs)
+    r = random.random()
+
+    for i, cumulative_prob in enumerate(cumulative_probs):
+        if r <= cumulative_prob:
+            return sorted_persons[i][0]
+
 def select_person(sorted_persons: list) -> Person:
     tournament_size = 2
     tournament = random.sample(sorted_persons, tournament_size)
     return max(tournament, key=lambda item: item[1])[0]
+
 
 class Treasure:
     def __init__(self, x: int, y: int):
         self.x = x
         self.y = y
 
+
 class Field:
     def __init__(self, size: int, treasures: list):
         self.size = size
         self.treasures = treasures
-        self.field = [[0] * size for _ in range(size)]
+        self.field = np.zeros((size, size), dtype=int)
         for treasure in treasures:
-            self.field[treasure.x][treasure.y] = 1
+            self.field[treasure.x, treasure.y] = 1
 
-def calculate_fitness(collected: int, steps: int, field_size: int) -> float:
-    fitness = collected * field_size * 10 - float(steps)
 
-    if collected == field_size:
+def calculate_fitness(collected: int, steps: int, max_treasures: int) -> float:
+    fitness = collected * max_treasures * 10 - float(steps)
+
+    if collected == max_treasures:
         fitness += 1000.0
 
     if steps > WANTED_RESULT:
         fitness /= 2
 
     return max(fitness, 0.0)
+
+
 if __name__ == '__main__':
     plt.close('all')
     main()
