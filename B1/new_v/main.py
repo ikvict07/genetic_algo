@@ -14,7 +14,13 @@ best_fitnesses = []
 final_best_fitnesses = []
 
 
-def plot_best_fitnesses(best_fitnesses):
+
+def plot_best_fitnesses(best_fitnesses: list):
+    """
+    Generates a plot of the best fitnesses over generations
+    :param best_fitnesses: list of the best fitnesses
+    :return: none
+    """
     plt.figure(figsize=(10, 5))
     plt.plot(best_fitnesses, label='Best Fitness')
     plt.xlabel('Generation')
@@ -25,7 +31,12 @@ def plot_best_fitnesses(best_fitnesses):
     plt.show()
 
 
-def animate_solution(directions: list):
+def animate_solution(directions: list[str]):
+    """
+    Animates the solution of the game
+    :param directions: list of directions
+    :return:
+    """
     n, m = 7, 7
     treasures = [(1, 4), (2, 2), (4, 1), (5, 4), (3, 6)]
     person_pos = [0, 0]
@@ -66,6 +77,10 @@ def animate_solution(directions: list):
 
 
 def main():
+    """
+    Main function that starts the game, evolution of the population and plotting of the results
+    :return:
+    """
     global best_fitnesses
     game = Game()
     # for _ in range(5):
@@ -90,6 +105,9 @@ def main():
 
 
 class Gene:
+    """
+    Gene class that represents a single gene in the chromosome
+    """
     def __init__(self, gene: str):
         self.gene = gene
         self.operation_type = OperationType.of(gene[0:2])
@@ -117,6 +135,9 @@ class OperationType:
 
 
 class Address:
+    """
+    Register address class
+    """
     def __init__(self, address: str):
         self.address = address
 
@@ -125,21 +146,36 @@ class Address:
 
 
 class Chromosome:
+    """
+    Chromosome class that represents the chromosome of the person (individual)
+    Wrapper around the list of genes
+    """
     def __init__(self, genes: list):
         self.genes = genes
 
 
 class Person:
+    """
+    Wrapper around the chromosome
+    Just for better readability
+    """
     def __init__(self, chromosome: Chromosome):
         self.chromosome = chromosome
 
 
 class Population:
+    """
+    Population class that represents the population of persons
+    Wrapper around the list of persons
+    """
     def __init__(self, persons: list):
         self.persons = persons
 
 
 class Direction:
+    """
+    Directions that the person can take
+    """
     UP = "LEFT"
     DOWN = "RIGHT"
     LEFT = "UP"
@@ -159,25 +195,45 @@ class Direction:
             raise ValueError("Invalid direction")
 
 
-def generate_all_possible_combinations() -> list:
+def generate_all_possible_combinations() -> list[str]:
+    """
+    Generates all possible combinations of 8 bits
+    :return: list of all possible combinations
+    """
     return [format(i, '08b') for i in range(256)]
 
 
 def generate_population(size: int) -> Population:
+    """
+    Generates a population of persons
+    :param size: size of the population to generate
+    :return: Population object
+    """
     persons = [generate_person() for _ in range(size)]
     return Population(persons)
 
-
+# Static global variable that holds all possible combinations of 8 bits
 combinations = generate_all_possible_combinations()
 
 
 def generate_person() -> Person:
+    """
+    Generates a person with random genes
+    :return: Person object
+    """
     genes = [Gene(random.choice(combinations)) for _ in range(CHROMOSOME_SIZE)]
     return Person(Chromosome(genes))
 
 
 class VirtualMachine:
+    """
+    Virtual machine that runs the program
+    """
     def run_virtual_machine(self, person: Person):
+        """
+        Runs the virtual machine with the given person
+        :param person: Person object
+        """
         memory = np.empty(64, dtype='U8')
         self.fill_memory(memory, person)
         pointer = 0
@@ -213,6 +269,12 @@ class VirtualMachine:
                 pointer += 1
 
     def fill_memory(self, memory: np.ndarray, person: Person):
+        """
+        Fills the virtual machine memory with the genes from the person
+        :param memory: Empty memory array
+        :param person: Person object
+        :return:
+        """
         genes = person.chromosome.genes
         for i, gene in enumerate(genes):
             operation_type = gene.operation_type
@@ -221,6 +283,9 @@ class VirtualMachine:
 
 
 class GameResult:
+    """
+    Game result class that holds the result of the game
+    """
     def __init__(self, person: Person, steps: int, treasures: int, directions: list):
         self.person = person
         self.steps = steps
@@ -229,10 +294,16 @@ class GameResult:
 
 
 class Game:
+    """
+    Game class that runs the game
+    """
     def __init__(self):
         self.game_result = None
 
     def play_game(self, population: Population) -> Person:
+        """
+        Plays the game with the given population
+        """
         print(f"Population size: {len(population.persons)}")
         virtual_machine = VirtualMachine()
         person_to_fitness = {}
@@ -255,6 +326,13 @@ class Game:
         return self.run_generation(population, virtual_machine, person_to_fitness)[0]
 
     def run_generation(self, population: Population, virtual_machine: VirtualMachine, person_to_fitness: dict):
+        """
+        Runs a single generation
+        :param population: population of persons
+        :param virtual_machine: virtual machine that runs the program
+        :param person_to_fitness: relation between person and fitness
+        :return: best person and its fitness and steps
+        """
         best_person = population.persons[0]
         best_fitness = 0.0
         best_steps = 0
@@ -265,7 +343,7 @@ class Game:
             directions = list(virtual_machine.run_virtual_machine(person))
             for direction in directions:
                 if collected == len(field.treasures):
-                    if steps > WANTED_RESULT:
+                    if steps > WANTED_RESULT: # if the steps are greater than wanted result, we scip this solution
                         break
                     print("All treasures collected")
                     print(f"Person: {person}")
@@ -275,7 +353,7 @@ class Game:
                     print(f"Ended at: {x}, {y}")
                     directions = directions[:steps]
                     self.game_result = GameResult(person, steps, collected, directions)
-                    raise ValueError("All treasures collected")
+                    raise ValueError("All treasures collected") # we raise an exception to stop the game
                 steps += 1
                 if direction == Direction.UP:
                     if y > 0: y -= 1
@@ -300,6 +378,11 @@ class Game:
 
 
 def generate_new_population(person_to_fitness: dict) -> Population:
+    """
+    Generates a new population based on the fitness of the persons
+    :param person_to_fitness:
+    :return: new population
+    """
     sorted_persons = sorted(person_to_fitness.items(), key=lambda item: item[1], reverse=True)
     elite = [person for person, _ in sorted_persons[:ELITE]]
     new_population = elite.copy()
@@ -316,6 +399,11 @@ def generate_new_population(person_to_fitness: dict) -> Population:
 
 
 def mutate(person: Person) -> Person:
+    """
+    Mutates the person with the given mutation rate
+    :param person:
+    :return: new mutated person
+    """
     genes = person.chromosome.genes.copy()
     for i in range(len(genes)):
         if random.random() < MUTATION_RATE:
@@ -324,11 +412,20 @@ def mutate(person: Person) -> Person:
 
 
 def generate_random_gene() -> Gene:
+    """
+    Generates a random gene
+    :return: random gene
+    """
     combinations = generate_all_possible_combinations()
     return Gene(random.choice(combinations))
 
 
 def crossover(first: Person, second: Person) -> Person:
+    """
+    Crossover of two persons (parents)
+    Chooses a random crossover point and creates a new person
+    :return: new person
+    """
     first_genes = first.chromosome.genes
     second_genes = second.chromosome.genes
     crossover_point = random.randint(0, CHROMOSOME_SIZE - 1)
@@ -337,6 +434,11 @@ def crossover(first: Person, second: Person) -> Person:
 
 
 def roulette_wheel_selection(sorted_persons: list) -> Person:
+    """
+    Roulette wheel selection of the person
+    :param sorted_persons: persons sorted by fitness
+    :return: selected person
+    """
     total_fitness = sum(fitness for _, fitness in sorted_persons)
     selection_probs = [fitness / total_fitness for _, fitness in sorted_persons]
 
@@ -348,18 +450,29 @@ def roulette_wheel_selection(sorted_persons: list) -> Person:
             return sorted_persons[i][0]
 
 def select_person(sorted_persons: list) -> Person:
+    """
+    Selects the person based on the fitness using tournament selection
+    :param sorted_persons: persons sorted by fitness
+    :return: selected person
+    """
     tournament_size = 2
     tournament = random.sample(sorted_persons, tournament_size)
     return max(tournament, key=lambda item: item[1])[0]
 
 
 class Treasure:
+    """
+    Treasure class that represents the treasure on the field
+    """
     def __init__(self, x: int, y: int):
         self.x = x
         self.y = y
 
 
 class Field:
+    """
+    Field class that represents the field
+    """
     def __init__(self, size: int, treasures: list):
         self.size = size
         self.treasures = treasures
@@ -369,12 +482,19 @@ class Field:
 
 
 def calculate_fitness(collected: int, steps: int, max_treasures: int) -> float:
+    """
+    Calculates the fitness of the person
+    :param collected: number of collected treasures
+    :param steps: number of steps taken
+    :param max_treasures: max possible treasures
+    :return: fitness
+    """
     fitness = collected * max_treasures * 10 - float(steps)
 
-    if collected == max_treasures:
+    if collected == max_treasures: # if all treasures are collected, we add 1000 to the fitness
         fitness += 1000.0
 
-    if steps > WANTED_RESULT:
+    if steps > WANTED_RESULT: # if the steps are greater than wanted result, we decrease the fitness
         fitness /= 2
 
     return max(fitness, 0.0)
