@@ -1,9 +1,10 @@
 import itertools
 import random
 
-from B2 import centroid
+import numpy as np
 
-LIMIT = 5000
+from B2 import centroid
+from B2.constants import LIMIT
 
 
 def generate_first_20() -> set['Point']:
@@ -20,7 +21,6 @@ def generate_40k(points: set['Point']) -> set['Point']:
         points.add(Point(new_x, new_y))
     return points
 
-
 def get_random_element(s: set):
     index = random.randint(0, len(s) - 1)
     return next(itertools.islice(s, index, index + 1))
@@ -29,9 +29,14 @@ def main():
     points = generate_first_20()
     points = generate_40k(points)
 
-
-
     centroid.main(points)
+
+
+def check_solution(clusters: dict[tuple, list[np.ndarray]]):
+    for center, points in clusters.items():
+        mean_distance = np.mean([np.linalg.norm(np.array(center) - point) for point in points])
+        if mean_distance > 500:
+            print(f"Cluster with center {center} has mean distance of {mean_distance:.2f}")
 
 
 class Point:
