@@ -1,14 +1,15 @@
 import numpy as np
 
 from B2.centroid import cluster_by_centroid
+from B2.common import Point, check_solution
 from B2.constants import CLUSTER_SIZE
-from B2.main import Point
 from B2.plotting import plot_clusters
 
 
 def cluster_by_divisive(points: set[Point], k: int) -> dict[tuple, list[np.ndarray]]:
     start = cluster_by_centroid(points, 2)
     return divisive(start, k)
+
 
 
 def divisive(clusters: dict[tuple, list[np.ndarray]], k: int) -> dict[tuple, list[np.ndarray]]:
@@ -21,4 +22,6 @@ def divisive(clusters: dict[tuple, list[np.ndarray]], k: int) -> dict[tuple, lis
     return clusters
 
 def main(points: set[Point]) -> None:
-    plot_clusters(cluster_by_divisive(points, CLUSTER_SIZE))
+    result = cluster_by_divisive(points, CLUSTER_SIZE)
+    check_solution(result)
+    plot_clusters(result)

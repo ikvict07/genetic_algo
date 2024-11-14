@@ -1,8 +1,10 @@
+from concurrent.futures import ThreadPoolExecutor
+
 import numpy as np
 
-from B2.centroid import initialize_clusters, find_center_metoid_parallel, find_closest_to_center
+from B2.centroid import initialize_clusters
+from B2.common import Point, find_closest_to_center, check_solution
 from B2.constants import CLUSTER_SIZE
-from B2.main import Point
 from B2.plotting import plot_clusters
 
 
@@ -26,6 +28,14 @@ def cluster_by_metoid(points: set[Point], k: int) -> dict[tuple, list[np.ndarray
             clusters[tuple(closest_centroid)].append(point)
     return clusters
 
-def main(points: set[Point]) -> None:
-    plot_clusters(cluster_by_metoid(points, CLUSTER_SIZE))
 
+def find_center_metoid_parallel(cluster: np.ndarray) -> np.ndarray:
+    with ThreadPoolExecutor() as executor:
+        total_distances = list(executor.map(lambda p: np.sum(np.linalg.norm(p - cluster, axis=1)), cluster))
+    return cluster[np.argmin(total_distances)]
+
+
+def main(points: set[Point]) -> None:
+    result = cluster_by_metoid(points, CLUSTER_SIZE)
+    check_solution(result)
+    plot_clusters(result)
